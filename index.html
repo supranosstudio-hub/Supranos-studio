@@ -17,6 +17,8 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
+
+  /* Desktop / larger screens: full-bleed cropped cover, no scroll */
   .cover {
     position: relative;
     width: 100vw;
@@ -30,6 +32,21 @@
     object-fit: cover;
     object-position: center;
     display: block;
+  }
+
+  /* Mobile: let the (tall) mobile image scroll in full instead of cropping */
+  @media (max-width: 768px) {
+    .cover {
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+    .cover img {
+      width: 100%;
+      height: auto;
+      object-fit: initial;
+      display: block;
+    }
   }
 </style>
 </head>
