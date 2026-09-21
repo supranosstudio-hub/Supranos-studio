@@ -1,48 +1,53 @@
-import { FOOTER } from "@/content/avst-extra";
-
 export default function AvstFooter() {
   return (
-    <footer className="bg-avst-night text-avst-paper">
-      <div className="max-w-[1560px] mx-auto px-[clamp(18px,4.2vw,72px)] py-16">
-        <div className="grid sm:grid-cols-3 gap-10 pb-10 border-b border-white/15">
-          <div>
-            <p className="font-avst-display font-medium text-[1.4rem] leading-[1.15] whitespace-pre-line">
-              {FOOTER.mark}
+    <footer className="ft night">
+      <div className="wrap">
+        <div className="ft-in">
+          <div className="ft-col">
+            <p className="ft-mark">
+              Aa Vesavi
+              <br />Selavulu Tarvata
             </p>
-            <p className="font-avst-mono text-[10px] tracking-[0.1em] uppercase text-white/50 mt-3">
-              {FOOTER.markNote}
-            </p>
+            <p className="meta">Days after my last summer holidays</p>
           </div>
-          <div>
-            <h4 className="font-avst-mono text-[10px] tracking-[0.14em] uppercase text-white/50 mb-3">Season One</h4>
-            <ul className="space-y-2">
-              {FOOTER.seasonLinks.map((l) => (
-                <li key={l.label}>
-                  <a href={l.href} className="text-white/80 hover:text-white text-[.92rem]">
-                    {l.label}
-                  </a>
-                </li>
-              ))}
+          <div className="ft-col">
+            <h4>Season One</h4>
+            <ul>
+              <li>
+                <a href="#home">All thirteen episodes</a>
+              </li>
+              <li>
+                <a href="#read">Read Episode One</a>
+              </li>
+              <li>
+                <a href="#cast">Cast &amp; model sheets</a>
+              </li>
+              <li>
+                <a href="#places-flat">Environment plates</a>
+              </li>
+              <li>
+                <a href="#dna-built">How it is built</a>
+              </li>
             </ul>
           </div>
-          <div>
-            <h4 className="font-avst-mono text-[10px] tracking-[0.14em] uppercase text-white/50 mb-3">Made by</h4>
-            <ul className="space-y-2 text-white/80 text-[.92rem]">
+          <div className="ft-col">
+            <h4>Made by</h4>
+            <ul>
               <li>
                 Written &amp; directed by
-                <br />
-                Supranos
+                <br />Supranos
+              </li>
+              <li>
+                <a href="https://bhargavkattunga.in" target="_blank" rel="noopener">
+                  Supranos
+                </a>
               </li>
             </ul>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-6">
-          <span className="font-avst-mono text-[10px] tracking-[0.1em] uppercase text-white/50">
-            © {new Date().getFullYear()} — All artwork and scripts
-          </span>
-          <span className="font-avst-mono text-[10px] tracking-[0.1em] uppercase text-white/50">
-            Hyderabad · Forty days
-          </span>
+        <div className="ft-base">
+          <span className="meta">© <span>{new Date().getFullYear()}</span> — All artwork and scripts</span>
+          <span className="meta">Hyderabad · Forty days</span>
         </div>
       </div>
     </footer>

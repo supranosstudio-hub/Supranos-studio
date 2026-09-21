@@ -4,18 +4,18 @@ import { useState } from "react";
 import { CAST, SATELLITES } from "@/content/avst";
 
 const WASH: Record<string, string> = {
-  anudeep: "bg-[#4a6fe6]",
-  suraj: "bg-[#e6a15a]",
-  kicha: "bg-[#e65a8a]",
-  aishwarya: "bg-[#7fae6b]",
-  jay: "bg-[#4a6fe6]",
+  anudeep: "--wash-blue",
+  suraj: "--wash-peach",
+  kicha: "--wash-rose",
+  aishwarya: "--wash-sage",
+  jay: "--wash-blue",
 };
 
-function Spec({ k, v }: { k: string; v: string }) {
+function SpecRow({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex justify-between gap-4 py-2.5 border-b border-avst-line">
-      <dt className="font-avst-mono text-[10px] tracking-[0.14em] uppercase text-avst-ink-3">{k}</dt>
-      <dd className="text-[.9rem] text-avst-ink-2 text-right">{v}</dd>
+    <div className="castspec__row">
+      <dt>{k}</dt>
+      <dd>{v}</dd>
     </div>
   );
 }
@@ -25,64 +25,76 @@ export default function CastSection() {
   const c = CAST[active];
 
   return (
-    <section id="cast" aria-label="Cast" className="px-[clamp(16px,4vw,64px)] py-[clamp(40px,7vw,90px)]">
-      <div className="max-w-[1180px] mx-auto">
-        <div className="flex flex-wrap gap-2 mb-8" role="tablist" aria-label="Choose a character">
-          {CAST.map((m, i) => (
-            <button
-              key={m.id}
-              type="button"
-              role="tab"
-              aria-current={i === active}
-              onClick={() => setActive(i)}
-              className={`font-avst-mono text-[10px] tracking-[0.12em] uppercase px-3 py-2 border ${
-                i === active ? "bg-avst-ink text-avst-paper border-avst-ink" : "border-avst-line-hard text-avst-ink-2"
-              }`}
-            >
-              {m.short}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid md:grid-cols-[minmax(0,360px)_1fr] gap-8 md:gap-14 items-start mb-16">
-          <div className={`relative aspect-[3/4] w-full overflow-hidden ${WASH[c.id] || "bg-avst-line"} bg-opacity-20`}>
-            <img src={c.img} alt={`${c.short}, character turnaround`} className="absolute inset-0 w-full h-full object-cover" />
+    <section className="sec" id="cast" aria-label="Cast">
+      <div className="casttrack" id="casttrack">
+        <div className="caststage">
+          <div className="castbar">
+            <div className="castnav" role="tablist" aria-label="Choose a character">
+              {CAST.map((m, i) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="castnav__btn"
+                  role="tab"
+                  aria-current={i === active}
+                  onClick={() => setActive(i)}
+                >
+                  {m.short}
+                </button>
+              ))}
+            </div>
+            <p className="castscroll">Choose a character</p>
           </div>
-          <div>
-            <p className="font-avst-mono text-[10px] tracking-[0.14em] uppercase text-avst-ink-3 mb-2">{c.role}</p>
-            <h2 className="font-avst-display font-semibold text-[clamp(1.8rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em] mb-2">
-              {c.name}
-            </h2>
-            <p className="text-avst-ink-2 mb-3">{c.homeLine}</p>
-            <p className="italic text-[1.1rem] mb-6">“{c.line}”</p>
-            <dl>
-              <Spec k="Age" v={String(c.age)} />
-              <Spec k="Works" v={c.job} />
-              <Spec k="Wiring" v={`${c.mbti} · ${c.sign}`} />
-              <Spec k="Home is" v={c.home} />
-              <Spec k="Flaw" v={c.flaw} />
-              <Spec k="Tell" v={c.tell} />
-              <Spec k="Carries" v={c.carries.join(" · ")} />
+
+          <div className="castfloor" id="castfloor">
+            <div className="castglow" style={{ "--wash": `var(${WASH[c.id] || "--wash-blue"})` } as React.CSSProperties} />
+            {CAST.map((m, i) => (
+              <figure
+                key={m.id}
+                className="castfig"
+                style={{ display: i === active ? undefined : "none" }}
+              >
+                <img src={m.img} alt={`${m.short}, character turnaround`} loading={i ? "lazy" : undefined} decoding="async" />
+              </figure>
+            ))}
+          </div>
+
+          <div className="castinfo">
+            <div className="castinfo__l">
+              <p className="eyebrow castinfo__role">{c.role}</p>
+              <h2 className="castinfo__name">{c.name}</h2>
+              <p className="castinfo__home">{c.homeLine}</p>
+              <p className="castinfo__line">“{c.line}”</p>
+            </div>
+            <dl className="castspec">
+              <SpecRow k="Age" v={String(c.age)} />
+              <SpecRow k="Works" v={c.job} />
+              <SpecRow k="Wiring" v={`${c.mbti} · ${c.sign}`} />
+              <SpecRow k="Home is" v={c.home} />
+              <SpecRow k="Flaw" v={c.flaw} />
+              <SpecRow k="Tell" v={c.tell} />
+              <SpecRow k="Carries" v={c.carries.join(" · ")} />
             </dl>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-baseline justify-between gap-8 pb-6 border-b border-avst-line-hard mb-6">
-          <div>
-            <span className="block font-avst-mono text-[10px] tracking-[0.14em] uppercase text-avst-ink-3">The colony</span>
-            <h2 className="font-avst-display font-medium text-[clamp(22px,3vw,32px)] tracking-[-0.02em]">Everybody else</h2>
-          </div>
+      <div className="page">
+        <div className="sect">
+          <span className="sect__n">The colony</span>
+          <h2 className="sect__t">Everybody else</h2>
+          <span className="sect__r" />
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="colony" id="colony">
           {SATELLITES.map((s) => (
-            <article key={s.id} className="border border-avst-line-hard">
-              <div className="aspect-[4/3] w-full overflow-hidden">
-                <img src={s.img} alt={s.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+            <article key={s.id} className="colony__card">
+              <div className="colony__img">
+                <img src={s.img} alt={s.name} loading="lazy" decoding="async" />
               </div>
-              <div className="p-4">
-                <h3 className="font-avst-display font-medium text-[1.05rem]">{s.name}</h3>
-                <p className="font-avst-mono text-[10px] tracking-[0.1em] uppercase text-avst-ink-3 mt-1">{s.role}</p>
-                <p className="text-[.85rem] text-avst-ink-2 mt-2 leading-[1.5]">{s.note}</p>
+              <div className="colony__body">
+                <h3 className="colony__name">{s.name}</h3>
+                <p className="colony__role">{s.role}</p>
+                <p className="colony__note">{s.note}</p>
               </div>
             </article>
           ))}

@@ -44,3 +44,4 @@ next-env.d.ts
 .next.stale.*
 .next-broken-*
 bun.lock
+out-old-*
