@@ -20,6 +20,7 @@ export default function EpisodesSection() {
   );
 
   return (
+    <>
     <section className="sec sec--shelf" id="home" aria-label="Episode shelf">
       <div className="shelfview" data-view={view}>
         <div className="shelfview__bar">
@@ -117,6 +118,8 @@ export default function EpisodesSection() {
         </div>
       </div>
 
+    </section>
+
       {openEp !== null && (
         <section className="sec" id="epfile" aria-label="Episode file">
           <div className="page" id="epbody">
@@ -124,6 +127,6 @@ export default function EpisodesSection() {
           </div>
         </section>
       )}
-    </section>
+    </>
   );
 }
