@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Supranos — How We Built AVST</title>
+<meta name="description" content="How Supranos built Aa Vesavi Selavulu Tarvata — the first Tanglish slice-of-life AI comic. The tools, the roadblocks, and how you can make your own.">
+<style>
+  :root{
+    --paper:#F4F0E7; --paper-2:#EBE4D6; --paper-3:#DED4C0;
+    --ink:#14110D; --ink-2:#3A3D45; --ink-3:#8B8171;
+    --line:#D9CFBB; --line-hard:#C6B99F;
+    --accent:#1b4dc4; --accent-2:#1740a8; --accent-soft:#7fa0ec;
+    --night:#0E0C0A; --night-2:#141519; --lime:#EDE5D6; --lime-2:#A79C8B;
+    --display:'Bricolage Grotesque', system-ui, sans-serif;
+    --body:'Newsreader', Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --gut:clamp(18px,4vw,64px); --maxw:1180px; --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%}
+  ::selection{background:var(--accent);color:#fff}
+  .meta{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .grain{position:fixed;inset:-120px;pointer-events:none;z-index:9000;opacity:.4;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E")}
+
+  /* nav */
+  header{position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--paper) 88%,transparent);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;gap:22px;max-width:var(--maxw);margin-inline:auto;padding:16px var(--gut);height:60px}
+  .nav__back{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+    display:flex;align-items:center;gap:10px;transition:color .3s var(--ease)}
+  .nav__back:hover{color:var(--ink)} .nav__back i{width:22px;height:1px;background:currentColor;display:block;transition:width .35s var(--ease)}
+  .nav__back:hover i{width:34px}
+  .nav__brand{font-family:var(--display);font-weight:600;letter-spacing:.02em;font-size:1.1rem;margin-left:auto}
+  .nav__links{display:flex;gap:20px}
+  .nav__links a{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);transition:color .3s}
+  .nav__links a:hover{color:var(--accent)}
+  @media(max-width:720px){.nav__links{display:none}}
+
+  .wrap{max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gut)}
+
+  /* hero */
+  .hero{padding:clamp(52px,9vw,120px) 0 clamp(30px,5vw,60px)}
+  .hero .kick{margin-bottom:22px}
+  .hero h1{font-family:var(--display);font-weight:600;font-size:clamp(2.4rem,7vw,5rem);line-height:.98;letter-spacing:-.025em;margin:0 0 26px;max-width:16ch}
+  .hero .lede{font-size:clamp(1.05rem,1.8vw,1.35rem);line-height:1.55;max-width:60ch;color:var(--ink-2)}
+  .hero .lede b{color:var(--ink);font-weight:600}
+  .hero .goals{display:flex;gap:clamp(14px,2vw,28px);flex-wrap:wrap;margin-top:32px}
+  .goal{border:1px solid var(--line-hard);padding:14px 18px;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .goal b{color:var(--accent)}
+
+  /* chapters */
+  .chapters{padding:clamp(20px,4vw,50px) 0 clamp(60px,9vw,120px)}
+  .ch{padding-block:clamp(40px,6vw,72px);border-top:1px solid var(--line)}
+  .ch__grid{display:grid;grid-template-columns:0.9fr 1.4fr;gap:clamp(24px,4vw,64px);align-items:start}
+  @media(max-width:820px){.ch__grid{grid-template-columns:1fr;gap:20px}}
+  .ch__n{font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;color:var(--accent);margin-bottom:14px}
+  .ch h2{font-family:var(--display);font-weight:600;font-size:clamp(1.5rem,3vw,2.4rem);line-height:1.02;letter-spacing:-.02em;margin:0 0 8px}
+  .ch h2 em{font-style:italic;font-weight:400;color:var(--ink-3)}
+  .ch p{margin:0 0 16px}
+  .ch p em{font-style:italic;color:var(--accent)}
+  .ch p b{font-weight:600}
+  .ch ul{margin:0 0 16px;padding-left:1.1em}
+  .ch li{margin-bottom:7px}
+  .aside{font-family:var(--mono);font-size:.72rem;line-height:1.6;letter-spacing:.02em;color:var(--ink-3);
+    border-left:2px solid var(--accent);padding-left:16px;margin-top:8px}
+
+  /* upload placeholder */
+  .drop{border:1.5px dashed var(--line-hard);background:var(--paper-2);aspect-ratio:16/10;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px;margin-top:6px}
+  .drop svg{width:30px;height:30px;stroke:var(--ink-3);fill:none;stroke-width:1.4}
+  .drop .lab{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .drop .sub{font-size:.82rem;color:var(--ink-3);max-width:34ch}
+  .drop--tall{aspect-ratio:3/4}
+  .drop--wide{aspect-ratio:24/9}
+
+  /* tool table */
+  .tools{width:100%;border-collapse:collapse;margin:6px 0 16px;font-size:.95rem}
+  .tools th,.tools td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  .tools th{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+  .tools td:first-child{font-family:var(--display);font-weight:600;white-space:nowrap;padding-right:24px}
+  .tools tr:last-child td{border-bottom:0}
+  .tools .good{color:var(--accent)}
+
+  /* pull quote / conclusion */
+  .concl{background:var(--night);color:var(--lime);padding:clamp(56px,10vw,120px) 0}
+  .concl .wrap{max-width:900px}
+  .concl .kick{color:var(--lime-2)}
+  .concl blockquote{margin:22px 0 0;font-family:var(--display);font-weight:600;
+    font-size:clamp(1.5rem,3.6vw,2.8rem);line-height:1.12;letter-spacing:-.02em;color:#fff}
+  .concl blockquote em{font-style:italic;font-weight:400;color:var(--accent-soft)}
+  .concl p{margin-top:24px;color:var(--lime-2);font-size:1.05rem;max-width:60ch}
+
+  /* CTA row */
+
+  /* skills section */
+  .skills{background:var(--paper-2);border-top:1px solid var(--line);padding:clamp(48px,7vw,110px) 0}
+  .skills .wrap{max-width:var(--maxw)}
+  .skills__head{margin-bottom:clamp(24px,3vw,44px)}
+  .skills__head .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .skills__head h2{margin:12px 0 10px;font-family:var(--display);font-weight:600;font-size:clamp(1.6rem,3.4vw,2.8rem);line-height:1;letter-spacing:-.02em}
+  .skills__head p{margin:0;max-width:60ch;color:var(--ink-2)}
+  .skills__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(12px,1.4vw,18px)}
+  @media(max-width:720px){.skills__grid{grid-template-columns:1fr}}
+  .skill{border:1px solid var(--line-hard);background:var(--paper);padding:clamp(18px,2vw,26px);display:flex;flex-direction:column;gap:8px;transition:transform .4s var(--ease),box-shadow .4s}
+  .skill:hover{transform:translateY(-3px);box-shadow:0 20px 40px -24px rgba(20,17,13,.3)}
+  .skill__top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .skill__n{font-family:var(--display);font-weight:600;font-size:clamp(1.05rem,1.6vw,1.3rem);letter-spacing:-.01em}
+  .skill__tag{font-family:var(--mono);font-size:.54rem;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--accent);padding:4px 8px;border-radius:2px;white-space:nowrap}
+  .skill__d{color:var(--ink-2);font-size:.96rem;line-height:1.5;margin:0}
+  .skills__aside{margin-top:clamp(30px,4vw,52px)}
+  .skills__aside h3{font-family:var(--display);font-weight:600;font-size:clamp(1.2rem,2vw,1.6rem);margin:0 0 16px;letter-spacing:-.01em}
+  .checklist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 24px;margin:0;padding:0;list-style:none}
+  @media(max-width:720px){.checklist{grid-template-columns:1fr}}
+  .checklist li{display:flex;gap:12px;align-items:flex-start;color:var(--ink-2);line-height:1.45}
+  .checklist li::before{content:"";flex:0 0 auto;width:18px;height:18px;margin-top:3px;border-radius:50%;
+    background:var(--accent);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 13 4 4L19 7' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E") center/14px no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 13 4 4L19 7' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E") center/14px no-repeat}
+  .checklist li b{color:var(--ink);font-weight:600}
+
+  .hib-cta{ border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; }
+  @media(max-width:640px){ .hib-cta{ grid-template-columns:1fr; } }
+  .hib-cta__in{ display:flex; flex-direction:column; gap:8px; padding:clamp(30px,4vw,56px) var(--gut);
+    text-decoration:none; color:inherit; background:var(--paper-2); position:relative; overflow:hidden; transition:background .4s; }
+  .hib-cta__in--alt{ background:var(--paper-3); }
+  .hib-cta__in + .hib-cta__in{ border-left:1px solid var(--line); }
+  @media(max-width:640px){ .hib-cta__in + .hib-cta__in{ border-left:0; border-top:1px solid var(--line); } }
+  .hib-cta__k{ font-family:var(--mono); font-size:.62rem; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); }
+  .hib-cta__t{ margin:0; font-family:var(--display); font-weight:600; font-size:clamp(1.3rem,2.6vw,2.1rem);
+    line-height:1.05; letter-spacing:-.02em; color:var(--ink); }
+  .hib-cta__t em{ font-style:italic; font-weight:400; color:var(--ink-3); }
+  .hib-cta__arrow{ display:inline-flex; align-items:center; gap:10px; margin-top:6px;
+    font-family:var(--mono); font-size:.66rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); }
+  .hib-cta__arrow i{ width:30px; height:1px; background:currentColor; display:block; transition:width .4s var(--ease); }
+  .hib-cta__in:hover .hib-cta__arrow i{ width:54px; }
+  .hib-cta__in:hover{ background:var(--paper-3); }
+  .ctarow{border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr}
+  @media(max-width:640px){.ctarow{grid-template-columns:1fr}}
+  .ctarow a{display:block;padding:clamp(28px,4vw,52px) var(--gut);position:relative;overflow:hidden;transition:color .4s}
+  .ctarow a+a{border-left:1px solid var(--line)}
+  @media(max-width:640px){.ctarow a+a{border-left:0;border-top:1px solid var(--line)}}
+  .ctarow .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .ctarow .t{font-family:var(--display);font-weight:600;font-size:clamp(1.2rem,2.4vw,1.8rem);margin-top:8px}
+  .ctarow .t i{font-style:normal;color:var(--accent);transition:transform .35s var(--ease);display:inline-block}
+  .ctarow a:hover .t i{transform:translateX(6px)}
+
+  footer{background:var(--night);color:var(--lime);padding:clamp(30px,4vw,50px) var(--gut)}
+  .ft{max-width:var(--maxw);margin-inline:auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:baseline}
+  .ft a{color:var(--lime-2)}.ft a:hover{color:var(--accent-soft)}
+
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  .reveal.in{opacity:1;transform:none}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+
+  /* animated gradient accent (matches supranos main page) */
+  .concl blockquote em{
+    background:linear-gradient(90deg,var(--accent-soft),#fff,var(--accent-soft));
+    background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:hue-sweep 6s ease-in-out infinite;font-style:italic;font-weight:400;
+  }
+  @keyframes hue-sweep{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+  /* custom cursor (matches supranos main page) */
+  .cursor{
+    position:fixed;top:0;left:0;width:34px;height:34px;border-radius:50%;
+    border:1px solid var(--ink);pointer-events:none;z-index:999;
+    transform:translate(-50%,-50%);mix-blend-mode:difference;
+    transition:width .25s var(--ease),height .25s var(--ease),background .25s ease;
+    display:none;
+  }
+  .cursor .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--paper);opacity:0;transition:opacity .2s ease;white-space:nowrap}
+  .cursor.big{width:74px;height:74px;background:var(--ink)}
+  .cursor.big .lab{opacity:1}
+  @media (hover:hover) and (pointer:fine){.cursor{display:block}}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor" id="cursor"><span class="lab">open</span></div>
+
+<header>
+  <nav class="nav">
+    <a class="nav__back" href="avst-pilot.html"><i></i>Back to the pilot</a>
+    <span class="nav__links">
+      <a href="avst-pilot.html">Pilot</a>
+      <a href="avst-books.html">The Shelf</a>
+    </span>
+    <span class="nav__brand">Supranos</span>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="meta kick reveal">The Making Of · Aa Vesavi Selavulu Tarvata</div>
+    <h1 class="reveal">How we built the first Tanglish AI comic</h1>
+    <p class="lede reveal">A decade ago one of us told his sister he wanted to be a cinematographer. She said that wasn't a profession. What we were really chasing was the thing you feel but can't measure &mdash; <b>vision and direction</b>. We became designers instead. Same instinct, different tools. Production costs like hell, so we made what we could alongside friends. When AI made it possible to <em>project</em> ideas instead of only describing them, we jumped in.</p>
+    <div class="goals reveal">
+      <span class="goal">Goal 01 &middot; <b>Direct a sitcom</b></span>
+      <span class="goal">Goal 02 &middot; <b>Draw like a comic artist</b></span>
+      <span class="goal">Goal 03 &middot; <b>Publish a book</b></span>
+    </div>
+  </div>
+</section>
+
+<section class="chapters">
+  <div class="wrap">
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">01 — Where it started</div>
+          <h2>A profession nobody <em>believed in</em></h2>
+        </div>
+        <div>
+          <p>A decade ago one of us told his sister he wanted to be a cinematographer. She said that wasn't even a profession. But the pull was never the job title &mdash; it was the passion to make something that is <em>felt</em>, not measured or merely seen.</p>
+          <p>Over time we became designers. How different is that from cinematics, really? It's all vision and direction &mdash; except this time we realised we wanted to <b>direct</b> whatever came next. Doing anything at scale costs like hell in production, so in the meantime we experimented on social media and with whatever we could make alongside like-minded friends. When AI turned up as a way to <em>project</em> ideas instead of keeping them at a distance, we jumped in. Out of that came this story, an inspiring set of friends, and &mdash; obviously &mdash; sitcoms.</p>
+          <p class="aside">Three goals, one toolkit: direct a sitcom, draw like a comic artist, publish a book.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">02 — The pitch</div>
+          <h2>A premise, some quirks, <em>a moodboard</em></h2>
+        </div>
+        <div>
+          <p>How did we start? One of us wrote what it should be about. Gave the characters their quirks. Mapped how the story should flow. Built a title and concepts on top of that, then a moodboard around the vision.</p>
+          <p>Then we pitched it to a friend, Sumith, who was already actively playing with content creation. The moment he heard it, he hopped on with his own expertise &mdash; and that's when it stopped being one person's idea.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">03 — Two labs, two models</div>
+          <h2>Decoding the characters <em>from both sides</em></h2>
+        </div>
+        <div>
+          <p>Sumith changed the horizon. He wrote a ton of prompts to generate characters and decode them through his own interpretation. While one of us was generating on <b>Gemini</b>, he was running the same ideas through <b>ChatGPT</b> &mdash; two labs, two models, the same cast being pulled into focus in parallel.</p>
+          <p>We kept iterating until the designs converged. Once we were close to what we wanted each character to look like, we finalised the art-style prompt and locked it.</p>
+          <div class="drop">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 14 4-4 4 4"/><path d="m14 12 3-3 4 4"/></svg>
+            <span class="lab">Upload: Outcome vs Prompt</span>
+            <span class="sub">The side-by-side where a prompt and what it produced sat next to each other, until the style was locked.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">04 — The trial run</div>
+          <h2>Six hours for <em>one intro</em></h2>
+        </div>
+        <div>
+          <p>By now we were impatient. We wanted a trial run &mdash; to know whether we could actually pull this off or not. Around the same time, Sumith ran a single shot, a single prompt, to get the whole story out in one go.</p>
+          <p>So we spent a complete day writing and editing prompts to get the pictures for the pilot episode. Just getting the <b>intro scene established took six-plus hours</b> &mdash; along with the assembly in Figma, which we used to add frames and adjust the text and images. It worked. We pitched the pilot to our friends, and they were excited &mdash; but we gave them the honest roadblock too: how much we might have to spend, and how easily the characters go inconsistent.</p>
+          <div class="drop drop--tall">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 14 4-4 4 4"/><path d="m14 12 3-3 4 4"/></svg>
+            <span class="lab">Upload: Pilot intro spread</span>
+            <span class="sub">The first established scene from Episode One.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">05 — The crew</div>
+          <h2>Fanboys who grew up on <em>anime and manga</em></h2>
+        </div>
+        <div>
+          <p>The friends came in one by one. From being fanboys, to visiting Japan, to actually bringing the culture into the work &mdash; that's always been an adventure (there was even an earlier stamps version). Sreekar, Ambi, Shan, Anand &mdash; each of them landed with the same energy.</p>
+          <p>What we hadn't said out loud until then was how much we all have a thing for anime and manga. As people, we grew up on it and lived with it &mdash; so writing stories in that world was personally exciting as hell. That shared thread is really what held the group together.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">06 — The chibi break-through</div>
+          <h2>The expressions <em>the panels lived on</em></h2>
+        </div>
+        <div>
+          <p>As the pilot came along, we felt a ton of expressions were missing &mdash; the ones that were subtle, but important for the frames. Sumith started building expression sheets to check each character's range.</p>
+          <p>But to actually beat around the comic-book expression &mdash; the exaggerated, readable kind &mdash; we landed on <b>chibi-style expressions</b>. Sumith led those sheets too, and that's what finally gave the panels the range they needed.</p>
+          <div class="drop">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 14 4-4 4 4"/><path d="m14 12 3-3 4 4"/></svg>
+            <span class="lab">Upload: Chibi expression sheets</span>
+            <span class="sub">The expression range the panels needed.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">07 — When one prompt broke</div>
+          <h2>Consistency and composition, <em>the new walls</em></h2>
+        </div>
+        <div>
+          <p>As Sumith pushed toward a stable daily rhythm in the story, he started hitting roadblocks &mdash; either the characters weren't consistent, or the scene composition was off. Meanwhile one of us wanted to do set design, and as we tried to put solid ground under that, the workload only grew. A single prompt to "put it all out" wasn't good enough: consistency and composition kept failing. Those became the new walls.</p>
+          <p>So the tasks split cleanly. One of us set up the prompts. Sumith worked on making the artwork unique and in-line with the style.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">08 — Splitting the work</div>
+          <h2>Agreeing on <em>an order</em>, not a timeline</h2>
+        </div>
+        <div>
+          <p>Eventually we sat down and talked through how we actually move forward with generating the comic. Until then it had been an idea floating around; this was about turning it into a real direction. The first realisation was just how much work is ahead &mdash; episodes, then characters, then environments, then props, then the generations themselves. Each one is its own chunk. Saying it out loud made it obvious: split it properly instead of both of us touching everything.</p>
+          <ul>
+            <li><b>Episodes.</b> One of us takes the writing &mdash; and, just as importantly, reviews them thoroughly before anything is treated as final. We don't want to be generating art around a script that's still shifting.</li>
+            <li><b>The generation side.</b> The other takes the Higgsfield side. Nobody fully understood how it worked, so the plan was to go and genuinely learn it &mdash; sit and watch how people are actually using it &mdash; before writing the character art-style specifically for it, so we'd have something consistent to generate against instead of winging each frame.</li>
+          </ul>
+          <p>Only once both pieces were in place &mdash; episodes reviewed, the tool understood, the art-style written &mdash; would we move to characters, environments and props. And one thing that came up while talking through the workload: <b>voice-prompting</b>. Given how much prompting we'd be doing across characters, environments and props, typing every one out would slow us to a crawl. Talking the prompts through felt like the obvious way to move faster &mdash; worth setting up before the generation phase, not after.</p>
+          <p class="aside">The sequence we agreed on: write and review the episodes → learn the tool and write the art-style → together, generate characters, environments and props → set up voice-prompting → start planning the generations. Nothing dated. This was about an order to work in, not a locked timeline.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch reveal">
+      <div class="ch__grid">
+        <div>
+          <div class="ch__n">09 — The tool chain, honestly</div>
+          <h2>What each tool was <em>actually</em> good at</h2>
+        </div>
+        <div>
+          <p>How it went later: we wrote prompts with Claude, generated characters with Higgsfield &mdash; a ChatGPT base character, then Seedream 5.0 for the full character sheet. Scene and environment construction was an absolute time-killer, even though the model and flow were the same; getting specific arrangements and detail was the hardest part. What helped was <b>drawing an outline for the environments first</b>. Then we handed all the plates to Claude, Google Flow and Higgsfield as declared elements going forward.</p>
+          <table class="tools">
+            <thead><tr><th>Tool</th><th>What it did — and its catch</th></tr></thead>
+            <tbody>
+              <tr><td>Claude</td><td>Wrote the prompts, and let a prompt carry the <span class="good">@name</span> tag.</td></tr>
+              <tr><td>Google Flow</td><td>Great at <span class="good">consistency between characters</span>. Only lets you add a character at a time.</td></tr>
+              <tr><td>Higgsfield</td><td>You can add elements for character, objects <em>and</em> environment. Alright &mdash; but generating one after another ate time and credits.</td></tr>
+              <tr><td>ChatGPT</td><td>Good at holding the <span class="good">artist look</span>. Doesn't remember as it goes; its context mapping is different.</td></tr>
+              <tr><td>Seedream 5.0</td><td>Built the full character sheet from a ChatGPT base character.</td></tr>
+            </tbody>
+          </table>
+          <p>Higgsfield was fine, but the one-after-another pace was costly, so we tried <b>batch generation in Google Flow</b>. Most of the time it did the job &mdash; but it would generate a couple of detail or construction issues, so we went back to <b>panel-by-panel</b> instead of batch. Along the way we tried adding skills: <span class="meta" style="color:var(--ink-2)">prompt-master, character-builder, banana-pro-director, cinema-director, seedance-director</span>.</p>
+          <p>The takeaway on tools: Google Flow gives you consistency between characters; ChatGPT is good at maintaining the artist look. We <b>combined both</b> for the outcome. And because we wanted panels to be exact, we did the assembly ourselves in Figma, dialogue boxes and all.</p>
+          <div class="drop drop--wide">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 14 4-4 4 4"/><path d="m14 12 3-3 4 4"/></svg>
+            <span class="lab">Upload: Process screenshots</span>
+            <span class="sub">Prompt panels, Figma assembly, tool captures.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="hib-cta" aria-label="Start building">
+  <a href="avst-pilot.html" class="hib-cta__in">
+    <span class="hib-cta__k">Now you know how</span>
+    <p class="hib-cta__t">Go read what it built &mdash; <em>the pilot</em></p>
+    <span class="hib-cta__arrow">Open the pilot <i></i></span>
+  </a>
+  <a href="avst-books.html" class="hib-cta__in hib-cta__in--alt">
+    <span class="hib-cta__k">The whole season</span>
+    <p class="hib-cta__t">All thirteen, one shelf &mdash; <em>see the covers</em></p>
+    <span class="hib-cta__arrow">The season <i></i></span>
+  </a>
+</section>
+
+<section class="skills" id="skills">
+  <div class="wrap">
+    <div class="skills__head reveal">
+      <div class="k">The stack</div>
+      <h2>Skills we actually leaned on</h2>
+      <p>Beyond the base tools, these are the custom prompt-skills that did the heavy lifting once the pipeline settled. Each one turns a fuzzy ask into a repeatable, on-model result.</p>
+    </div>
+    <div class="skills__grid">
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">prompt-master</span><span class="skill__tag">Prompting</span></div>
+        <p class="skill__d">The base layer. Turns a plain description into a structured, model-ready prompt — the difference between "draw the boys at a chai stall" and a prompt that actually holds composition and character.</p></div>
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">character-builder</span><span class="skill__tag">Characters</span></div>
+        <p class="skill__d">Locks a character's look so it survives across panels. The single biggest fix for the consistency roadblock — same face, same wardrobe, scene after scene.</p></div>
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">banana-pro-director</span><span class="skill__tag">Framing</span></div>
+        <p class="skill__d">Directs the shot — angle, lens feel, staging — so a panel reads like a deliberate frame instead of a generation that happened to land.</p></div>
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">cinema-director</span><span class="skill__tag">Sequence</span></div>
+        <p class="skill__d">Thinks in scenes, not stills. Keeps light, mood and continuity coherent across a run of panels so a page flows as one moment.</p></div>
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">seedance-director</span><span class="skill__tag">Motion</span></div>
+        <p class="skill__d">For anything that needed to move — the teaser and animated beats. Breaks a scene into shots a video model can actually follow.</p></div>
+      <div class="skill reveal"><div class="skill__top"><span class="skill__n">figma assembly</span><span class="skill__tag">Layout</span></div>
+        <p class="skill__d">Not a prompt-skill, but essential: every panel was placed, sized and lettered by hand in Figma. The dialogue boxes and page rhythm live here.</p></div>
+    </div>
+
+    <div class="skills__aside reveal">
+      <h3>What actually helped</h3>
+      <ul class="checklist">
+        <li><b>Review the script first.</b> Never generate art around a page that's still shifting.</li>
+        <li><b>Lock characters before scenes.</b> Consistency is cheaper to enforce early than to fix later.</li>
+        <li><b>Draw an outline for environments.</b> The single biggest time-saver on the hardest part.</li>
+        <li><b>Panel-by-panel beats batch.</b> Batches drift on detail; one panel at a time holds.</li>
+        <li><b>Combine tools for their strengths.</b> Flow for consistency, ChatGPT for the artist look.</li>
+        <li><b>Voice-prompt the volume.</b> Talking prompts beats typing them across a whole cast.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="concl">
+  <div class="wrap">
+    <div class="meta kick">The honest conclusion</div>
+    <blockquote>AI does a lot that used to take forever. You still burn the time &mdash; <em>it just moves to prompting and generating.</em></blockquote>
+    <p>With real hands-on skills you'd see progress in real time and could quote a hard timeline. Here you burn and burn for a few drops. We came away with huge respect for the pencillists who did all of this by hand, one panel at a time &mdash; and for the coordination a film takes.</p>
+  </div>
+</section>
+
+<div class="ctarow">
+  <a href="avst-pilot.html">
+    <span class="k">Read it</span>
+    <div class="t">Open the pilot <i>&rarr;</i></div>
+  </a>
+  <a href="avst-books.html">
+    <span class="k">The whole season</span>
+    <div class="t">See all thirteen <i>&rarr;</i></div>
+  </a>
+</div>
+
+<footer>
+  <div class="ft">
+    <span class="meta">Supranos · Aa Vesavi Selavulu Tarvata</span>
+    <span class="meta">Written &amp; directed by Supranos</span>
+    <span class="meta"><a href="avst-pilot.html">Back to the pilot →</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.reveal'));
+  if(!('IntersectionObserver'in window)){els.forEach(function(e){e.classList.add('in');});return;}
+  var io=new IntersectionObserver(function(x){x.forEach(function(y){if(y.isIntersecting){y.target.classList.add('in');io.unobserve(y.target);}});},{rootMargin:'0px 0px -8% 0px'});
+  els.forEach(function(e){io.observe(e);});
+
+  // custom cursor: same behavior as the main supranos page
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cursor=document.getElementById('cursor');
+  var hasFinePointer=window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(cursor&&hasFinePointer&&!reduce){
+    var cx=0,cy=0,tx=0,ty=0;
+    window.addEventListener('mousemove',function(e){ tx=e.clientX; ty=e.clientY; });
+    (function raf(){
+      cx+=(tx-cx)*0.22; cy+=(ty-cy)*0.22;
+      cursor.style.transform='translate('+cx+'px,'+cy+'px) translate(-50%,-50%)';
+      requestAnimationFrame(raf);
+    })();
+    var targets=[].slice.call(document.querySelectorAll('.nav__back, .ctarow a, .hib-cta__in, .skill'));
+    var lab=cursor.querySelector('.lab');
+    targets.forEach(function(t){
+      t.addEventListener('mouseenter',function(){ cursor.classList.add('big'); lab.textContent=t.getAttribute('data-cursor')||'open'; });
+      t.addEventListener('mouseleave',function(){ cursor.classList.remove('big'); });
+    });
+  }
+})();
+</script>
+</body>
+</html>
