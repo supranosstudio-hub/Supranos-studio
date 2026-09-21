@@ -1,8 +1,4 @@
-@import "tailwindcss" source(none);
-@source "./app/**/*.{ts,tsx}";
-@source "./components/**/*.{ts,tsx}";
-@source "./content/**/*.{ts,tsx}";
-@source "./lib/**/*.{ts,tsx}";
+@import "tailwindcss";
 
 :root {
   /* supranos — main studio palette */
