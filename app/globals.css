@@ -188,3 +188,25 @@ body {
   outline: none;
   box-shadow: inset 3px 0 0 var(--accent);
 }
+
+/* AVST gallery chibi marquee: continuous horizontal scroll, two directions */
+@keyframes avst-marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes avst-marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.animate-avst-marquee-left {
+  animation: avst-marquee-left 34s linear infinite;
+}
+.animate-avst-marquee-right {
+  animation: avst-marquee-right 41s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-avst-marquee-left,
+  .animate-avst-marquee-right {
+    animation: none;
+  }
+}
