@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import HTMLFlipBook from "react-pageflip";
 import { EPISODES, MOVEMENTS, SHOW } from "@/content/avst";
 import { AVST_COVERS } from "@/content/avst-media";
+
+/* ────────────────────────────────────────────────────────────────────────
+   Customisation — a custom backdrop, per-page background art, and per-page
+   music. Pass these as props from where you open the reader, or edit the
+   defaults. Keys are the page index (0 = cover). Drop audio/images in
+   /public and reference them as "/audio/xyz.mp3" / "/images/xyz.jpg".
+   ──────────────────────────────────────────────────────────────────────── */
+const DEFAULT_BACKGROUND =
+  "radial-gradient(1200px 820px at 50% -10%, #3a2d1e 0%, #221a12 55%, #14100b 100%)";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
 }
 
-/* A single typeset page, matching the legacy reader's page vocabulary. */
 interface Page {
   cover?: boolean;
   title?: boolean;
@@ -27,11 +36,9 @@ interface Page {
   list?: string[];
   note?: string;
   q?: string;
-  link?: string;
-  linkText?: string;
 }
 
-/* Ported verbatim from the legacy reader's readerPages(ep). */
+/* Ported from the legacy reader's readerPages(ep). */
 function readerPages(epN: number): Page[] {
   const ep = EPISODES.find((e) => e.n === epN)!;
   const movement = MOVEMENTS.find((m) => m.id === ep.mv);
@@ -64,6 +71,19 @@ function readerPages(epN: number): Page[] {
   ];
 }
 
+function pageClass(pg: Page) {
+  return [
+    "br-page",
+    pg.cover && "br-page--cover",
+    pg.title && "br-page--title",
+    pg.quote && "br-page--quote",
+    pg.close && "br-page--close",
+    pg.tint && "br-page--tint",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function FaceContent({ pg, epN, coverUrl }: { pg: Page; epN: number; coverUrl?: string }) {
   const ep = EPISODES.find((e) => e.n === epN)!;
   const movement = MOVEMENTS.find((m) => m.id === ep.mv);
@@ -73,7 +93,6 @@ function FaceContent({ pg, epN, coverUrl }: { pg: Page; epN: number; coverUrl?: 
       <span>{pad2(ep.n)} / 13</span>
     </div>
   );
-
   if (pg.cover) {
     return (
       <>
@@ -81,10 +100,7 @@ function FaceContent({ pg, epN, coverUrl }: { pg: Page; epN: number; coverUrl?: 
           <span className="br-kicker">Supranos</span>
           <span className="br-kicker">Vol. {movement?.n}</span>
         </div>
-        <div
-          className="br-cover__win"
-          style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
-        />
+        <div className="br-cover__win" style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined} />
         <div className="br-cover__foot">
           <h2 className="br-cover__te">{ep.te}</h2>
           <p className="br-cover__en">{ep.en}</p>
@@ -131,7 +147,6 @@ function FaceContent({ pg, epN, coverUrl }: { pg: Page; epN: number; coverUrl?: 
       </>
     );
   }
-  // ordinary leaf
   return (
     <>
       <p className="br-kicker">{pg.kicker}</p>
@@ -157,106 +172,122 @@ function FaceContent({ pg, epN, coverUrl }: { pg: Page; epN: number; coverUrl?: 
   );
 }
 
-function faceClass(pg: Page, side: "front" | "back") {
-  return [
-    "br-face",
-    `br-face--${side}`,
-    pg.cover && "br-face--cover",
-    pg.title && "br-face--title",
-    pg.quote && "br-face--quote",
-    pg.close && "br-face--close",
-    pg.tint && "br-face--tint",
-  ]
-    .filter(Boolean)
-    .join(" ");
+/* Each page must forward its ref — react-pageflip attaches to it. */
+const FlipPage = forwardRef<
+  HTMLDivElement,
+  { pg: Page; epN: number; coverUrl?: string; bg?: string }
+>(function FlipPage({ pg, epN, coverUrl, bg }, ref) {
+  return (
+    <div
+      className={pageClass(pg)}
+      ref={ref}
+      style={bg ? { backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+    >
+      <div className="br-page__inner">
+        <FaceContent pg={pg} epN={epN} coverUrl={coverUrl} />
+      </div>
+    </div>
+  );
+});
+
+type FlipApi = { pageFlip: () => { flipNext: () => void; flipPrev: () => void } };
+
+interface BookReaderProps {
+  n: number;
+  onClose: () => void;
+  /** Reader backdrop — any CSS background value (gradient or `url(...)`). */
+  background?: string;
+  /** page index → background image url */
+  pageBackgrounds?: Record<number, string>;
+  /** page index → audio file url (played, looped, while that page shows) */
+  pageAudio?: Record<number, string>;
 }
 
-export default function BookReader({ n, onClose }: { n: number; onClose: () => void }) {
+export default function BookReader({
+  n,
+  onClose,
+  background = DEFAULT_BACKGROUND,
+  pageBackgrounds = {},
+  pageAudio = {},
+}: BookReaderProps) {
   const ep = EPISODES.find((e) => e.n === n)!;
   const movement = MOVEMENTS.find((m) => m.id === ep.mv);
   const coverUrl = AVST_COVERS[n];
   const pages = useMemo(() => readerPages(n), [n]);
   const K = pages.length;
 
-  const [turned, setTurned] = useState(0);
-  const [reading, setReading] = useState(false);
-
-  const go = useCallback(
-    (dir: number) => {
-      setTurned((t) => Math.max(0, Math.min(K - 1, t + dir)));
-    },
-    [K]
-  );
+  const bookRef = useRef<FlipApi | null>(null);
+  const [page, setPage] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") {
-        setReading(true);
-        setTurned((t) => Math.min(K - 1, t + 1));
-      } else if (e.key === "ArrowLeft") setTurned((t) => Math.max(0, t - 1));
+      else if (e.key === "ArrowRight") bookRef.current?.pageFlip()?.flipNext();
+      else if (e.key === "ArrowLeft") bookRef.current?.pageFlip()?.flipPrev();
     };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKey);
     };
-  }, [K, onClose]);
+  }, [onClose]);
 
-  const countLabel = turned === 0 ? "The cover" : turned >= K - 1 ? "The last page" : `Page ${turned + 1} of ${K}`;
+  // per-page music
+  useEffect(() => {
+    const src = pageAudio[page];
+    const a = audioRef.current;
+    if (!src || muted) {
+      a?.pause();
+      return;
+    }
+    const el = a ?? new Audio();
+    if (!el.src.endsWith(src)) el.src = src;
+    el.loop = true;
+    el.volume = 0.5;
+    el.play().catch(() => {});
+    audioRef.current = el;
+  }, [page, muted, pageAudio]);
 
-  const startReading = () => {
-    setReading(true);
-    if (turned === 0) setTurned(1);
-  };
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+    },
+    []
+  );
+
+  const countLabel = page === 0 ? "The cover" : page >= K - 1 ? "The last page" : `Page ${page + 1} of ${K}`;
+  const hasAudio = Object.keys(pageAudio).length > 0;
 
   return (
-    <div className="bookreader" role="dialog" aria-modal="true" aria-label={`Reading ${ep.te}`}>
+    <div className="bookreader" role="dialog" aria-modal="true" aria-label={`Reading ${ep.te}`} style={{ background }}>
       <style>{`
         .bookreader{ --paper:#f4efe4; --paper-2:#ece7dc; --ink:#2b2721; --ink-2:rgba(43,39,33,.72); --ink-3:rgba(43,39,33,.46);
           --line:rgba(43,39,33,.16); --accent:#1b4dc4; --board:${movement?.board || "#c9b79a"};
-          position:fixed; inset:0; z-index:2000; display:grid; grid-template-rows:1fr auto;
-          background:rgba(24,20,16,.72); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+          position:fixed; inset:0; z-index:2000; display:grid; grid-template-rows:auto 1fr auto;
           font-family:Georgia,'Times New Roman',serif; color:var(--ink); animation:br-in .3s ease both; }
         @keyframes br-in{ from{opacity:0} }
-        .bookreader__scrim{ position:absolute; inset:0; z-index:0; border:0; background:transparent; cursor:zoom-out; }
-        .bookreader__close{ position:absolute; top:18px; right:18px; z-index:9; width:40px; height:40px; border-radius:50%;
-          border:1px solid rgba(255,255,255,.24); background:rgba(0,0,0,.25); color:#fff; cursor:pointer; font-size:18px;
-          display:inline-flex; align-items:center; justify-content:center; }
-        .bookreader__close:hover{ background:rgba(0,0,0,.5); }
+        .bookreader__bar{ position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:16px;
+          padding:16px clamp(16px,4vw,40px); color:#f3eee3; }
+        .bookreader__meta{ display:flex; align-items:baseline; gap:12px; min-width:0; }
+        .bookreader__meta b{ font-size:clamp(1rem,2vw,1.3rem); font-weight:600; }
+        .bookreader__meta span{ font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.55); }
+        .bookreader__tools{ display:flex; align-items:center; gap:10px; }
+        .br-icon{ width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,.24); background:rgba(0,0,0,.25); color:#fff; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:16px; }
+        .br-icon:hover{ background:rgba(0,0,0,.5); }
 
-        .br-stage{ position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:clamp(20px,4vw,64px);
-          padding:clamp(20px,5vh,64px) clamp(16px,4vw,56px) 0; min-height:0; flex-wrap:wrap; }
+        .br-stage{ position:relative; z-index:1; display:flex; align-items:center; justify-content:center; padding:clamp(8px,2vh,24px) clamp(12px,4vw,48px); min-height:0; }
+        .br-flip{ margin:0 auto; }
 
-        /* summary panel */
-        .br-sum{ max-width:340px; color:#f3eee3; }
-        .br-sum__vol{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.55); margin:0 0 14px; }
-        .br-sum__te{ font-size:clamp(1.8rem,3vw,2.6rem); line-height:1.02; margin:0 0 6px; color:#fff; }
-        .br-sum__en{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); margin:0 0 16px; }
-        .br-sum__log{ font-size:1rem; line-height:1.6; color:rgba(255,255,255,.82); margin:0 0 18px; }
-        .br-sum__spec{ margin:0 0 20px; border-top:1px solid rgba(255,255,255,.18); }
-        .br-sum__row{ display:grid; grid-template-columns:6.5em 1fr; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.12); }
-        .br-sum__row dt{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.5); font-family:ui-monospace,monospace; }
-        .br-sum__row dd{ margin:0; font-size:.92rem; color:rgba(255,255,255,.85); }
-        .br-sum__cta{ display:inline-block; padding:11px 22px; background:var(--accent); color:#fff; border:0; cursor:pointer;
-          font-family:ui-monospace,monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
-        .br-sum__cta:hover{ filter:brightness(1.1); }
-        @media (max-width:820px){ .br-sum{ display:none; } }
-
-        /* the book */
-        .br-book{ position:relative; height:min(74vh,620px); width:calc(min(74vh,620px) * 0.72);
-          perspective:2200px; transform-style:preserve-3d; }
-        .br-leaf{ position:absolute; inset:0; transform-style:preserve-3d; transform-origin:left center;
-          transition:transform .9s cubic-bezier(.2,.7,.2,1); }
-        .br-leaf.is-turned{ transform:rotateY(-178deg); }
-        .br-face{ position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden; overflow:hidden;
-          background:var(--paper); border:1px solid var(--line); border-radius:2px 6px 6px 2px;
-          box-shadow:0 24px 50px -20px rgba(20,14,8,.7), inset 1px 0 0 rgba(255,255,255,.4);
-          padding:clamp(20px,3vw,34px); display:flex; flex-direction:column; }
-        .br-face--back{ transform:rotateY(180deg); border-radius:6px 2px 2px 6px; }
-        .br-face--blank{ background:var(--paper-2); box-shadow:inset 0 0 30px rgba(58,44,26,.08); }
-        .br-face--tint{ background:linear-gradient(160deg,#f0ead9,#e7dcc4); }
+        .br-page{ width:100%; height:100%; background:var(--paper); overflow:hidden;
+          box-shadow:inset 0 0 0 1px var(--line); }
+        .br-page__inner{ width:100%; height:100%; padding:clamp(20px,3.2vw,36px); display:flex; flex-direction:column; box-sizing:border-box; }
+        .br-page--tint .br-page__inner, .br-page--tint{ background:linear-gradient(160deg,#f0ead9,#e7dcc4); }
 
         .br-kicker{ font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3); margin:0 0 auto; }
         .br-foot{ display:flex; justify-content:space-between; font-family:ui-monospace,monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); margin-top:auto; padding-top:14px; }
@@ -268,101 +299,89 @@ export default function BookReader({ n, onClose }: { n: number; onClose: () => v
         .br-list li{ font-size:.98rem; line-height:1.5; color:var(--ink-2); margin:0 0 8px; }
         .br-note{ font-size:.82rem; font-style:italic; color:var(--ink-3); margin:14px 0 0; }
 
-        /* cover face */
-        .br-face--cover{ background:linear-gradient(165deg,var(--board),color-mix(in srgb,var(--board) 72%, #000)); color:#fff; }
+        .br-page--cover{ background:linear-gradient(165deg,var(--board),color-mix(in srgb,var(--board) 70%, #000)); color:#fff; }
         .br-cover__top{ display:flex; justify-content:space-between; }
-        .br-face--cover .br-kicker{ color:rgba(255,255,255,.7); }
-        .br-cover__win{ flex:1; margin:16px 0; background:rgba(0,0,0,.2) center/cover no-repeat; border-radius:2px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15); }
+        .br-page--cover .br-kicker{ color:rgba(255,255,255,.7); margin:0; }
+        .br-cover__win{ flex:1; margin:16px 0; background:rgba(0,0,0,.2) center/cover no-repeat; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15); }
         .br-cover__te{ font-size:clamp(1.5rem,2.4vw,2.1rem); line-height:1.02; margin:0 0 4px; }
         .br-cover__en{ font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.7); margin:0; }
 
-        /* title face */
         .br-title{ margin:auto 0; }
         .br-title__no{ font-size:clamp(3rem,6vw,5rem); line-height:.9; color:var(--ink-3); margin:0; }
         .br-title__h{ font-size:clamp(1.8rem,3vw,2.6rem); line-height:1.02; margin:8px 0; }
         .br-title__sub{ font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:0; }
         .br-title__meta{ display:flex; justify-content:space-between; font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); margin-top:auto; }
 
-        /* quote face */
         .br-quote{ font-size:clamp(1.5rem,2.6vw,2.1rem); font-style:italic; line-height:1.3; margin:auto 0 0; color:var(--ink); }
         .br-quote__note{ font-size:.85rem; color:var(--ink-3); margin:14px 0 auto; }
 
-        /* nav */
-        .br-nav{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; gap:20px; padding:18px; color:#f3eee3; }
+        .br-nav{ position:relative; z-index:3; display:flex; align-items:center; justify-content:center; gap:20px; padding:16px; color:#f3eee3; }
         .br-nav button{ background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:18px; }
-        .br-nav button:hover:not(:disabled){ background:rgba(255,255,255,.14); }
-        .br-nav button:disabled{ opacity:.3; cursor:default; }
-        .br-nav__count{ font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; min-width:130px; text-align:center; color:rgba(255,255,255,.7); }
+        .br-nav button:hover{ background:rgba(255,255,255,.14); }
+        .br-nav__count{ font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; min-width:140px; text-align:center; color:rgba(255,255,255,.7); }
       `}</style>
 
-      <button className="bookreader__scrim" aria-label="Close reader" onClick={onClose} />
-      <button className="bookreader__close" aria-label="Close" onClick={onClose}>
-        &times;
-      </button>
-
-      <div className="br-stage">
-        <div className="br-sum">
-          <p className="br-sum__vol">
-            <span>Volume {movement?.n}</span>
-            <b>{pad2(ep.n)} / 13</b>
-          </p>
-          <h2 className="br-sum__te">{ep.te}</h2>
-          <p className="br-sum__en">{ep.en}</p>
-          <p className="br-sum__log">{ep.logline}</p>
-          <dl className="br-sum__spec">
-            <div className="br-sum__row">
-              <dt>Movement</dt>
-              <dd>
-                {movement?.n} · {movement?.name}
-              </dd>
-            </div>
-            <div className="br-sum__row">
-              <dt>When</dt>
-              <dd>{ep.week}</dd>
-            </div>
-            <div className="br-sum__row">
-              <dt>Format</dt>
-              <dd>{SHOW.format}</dd>
-            </div>
-            <div className="br-sum__row">
-              <dt>Theme</dt>
-              <dd>{ep.felt}</dd>
-            </div>
-          </dl>
-          <button className="br-sum__cta" onClick={startReading}>
-            Open the book &rarr;
-          </button>
+      <div className="bookreader__bar">
+        <div className="bookreader__meta">
+          <b>{ep.te}</b>
+          <span>
+            {pad2(ep.n)} / 13 · {movement?.name}
+          </span>
         </div>
-
-        <div className="br-book" onClick={() => !reading && startReading()}>
-          {pages.map((pg, i) => {
-            const isTurned = i < turned;
-            const z = isTurned ? i + 1 : K - i;
-            return (
-              <div className={`br-leaf${isTurned ? " is-turned" : ""}`} key={i} style={{ zIndex: z }}>
-                <div className={faceClass(pg, "front")}>
-                  <FaceContent pg={pg} epN={n} coverUrl={coverUrl} />
-                </div>
-                <div className="br-face br-face--back br-face--blank" />
-              </div>
-            );
-          })}
+        <div className="bookreader__tools">
+          {hasAudio ? (
+            <button className="br-icon" aria-label={muted ? "unmute" : "mute"} onClick={() => setMuted((m) => !m)}>
+              {muted ? "\u{1F507}" : "\u{1F50A}"}
+            </button>
+          ) : null}
+          <button className="br-icon" aria-label="Close" onClick={onClose}>
+            &times;
+          </button>
         </div>
       </div>
 
+      <div className="br-stage">
+        {mounted ? (
+          <HTMLFlipBook
+            className="br-flip"
+            style={{}}
+            startPage={0}
+            size="stretch"
+            width={400}
+            height={560}
+            minWidth={300}
+            maxWidth={560}
+            minHeight={420}
+            maxHeight={760}
+            drawShadow={true}
+            flippingTime={800}
+            usePortrait={true}
+            startZIndex={0}
+            autoSize={true}
+            maxShadowOpacity={0.5}
+            showCover={true}
+            mobileScrollSupport={true}
+            clickEventForward={true}
+            useMouseEvents={true}
+            swipeDistance={30}
+            showPageCorners={true}
+            disableFlipByClick={false}
+            ref={bookRef}
+            onFlip={(e) => setPage(e.data)}
+          >
+            {pages.map((pg, i) => (
+              <FlipPage key={i} pg={pg} epN={n} coverUrl={coverUrl} bg={pageBackgrounds[i]} />
+            ))}
+          </HTMLFlipBook>
+        ) : null}
+      </div>
+
       <div className="br-nav">
-        <button aria-label="previous page" onClick={() => go(-1)} disabled={turned === 0}>
+        <button aria-label="previous page" onClick={() => bookRef.current?.pageFlip()?.flipPrev()}>
           &larr;
         </button>
         <span className="br-nav__count">{countLabel}</span>
-        <button
-          aria-label="next page"
-          onClick={() => {
-            setReading(true);
-            go(1);
-          }}
-          disabled={turned >= K - 1}
-        >
+        <button aria-label="next page" onClick={() => bookRef.current?.pageFlip()?.flipNext()}>
           &rarr;
         </button>
       </div>
