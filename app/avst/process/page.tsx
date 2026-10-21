@@ -233,7 +233,7 @@ export default function ProcessPage() {
       </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-avst-line">
-        <a href="/legacy/avst-pilot-original.html" data-cursor="read" className="block p-[clamp(24px,4vw,52px)] border-b sm:border-b-0 sm:border-r border-avst-line hover:bg-avst-paper-2 transition">
+        <a href="/avst" data-cursor="read" className="block p-[clamp(24px,4vw,52px)] border-b sm:border-b-0 sm:border-r border-avst-line hover:bg-avst-paper-2 transition">
           <span className="font-avst-mono text-[10px] tracking-[.18em] uppercase text-avst-ink-3">Read it</span>
           <div className="font-avst-display font-semibold text-[clamp(1.2rem,2.4vw,1.8rem)] mt-2">Open the pilot &rarr;</div>
         </a>

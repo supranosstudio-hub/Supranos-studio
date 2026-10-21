@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import BookReader from "@/components/avst/BookReader";
 import Image from "next/image";
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
@@ -5,6 +9,7 @@ import { EPISODES } from "@/content/avst";
 import { AVST_COVERS } from "@/content/avst-media";
 
 export default function AvstBooksPage() {
+  const [readerEp, setReaderEp] = useState<number | null>(null);
   return (
     <main className="px-[clamp(16px,4vw,64px)] py-[clamp(56px,10vw,120px)]">
       <div className="max-w-[1180px] mx-auto">
@@ -31,7 +36,7 @@ export default function AvstBooksPage() {
               <Reveal key={ep.n} delay={ep.n * 0.02}>
                 <div className={unlocked ? "" : "opacity-60"}>
                   {unlocked ? (
-                    <a href="/legacy/avst-pilot-original.html" data-cursor="read" className="group block">
+                    <button type="button" onClick={() => setReaderEp(ep.n)} data-cursor="read" className="group block w-full text-left">
                       <span className="relative block aspect-[3/4] bg-avst-paper-2 border border-avst-line-hard overflow-hidden">
                         {cover && (
                           <Image
@@ -43,7 +48,7 @@ export default function AvstBooksPage() {
                           />
                         )}
                       </span>
-                    </a>
+                    </button>
                   ) : (
                     <span className="relative flex items-center justify-center aspect-[3/4] bg-avst-paper-3 border border-dashed border-avst-line-hard">
                       <span className="font-avst-mono text-[9px] tracking-[.1em] uppercase text-avst-ink-3 text-center px-2">Coming</span>
@@ -68,6 +73,7 @@ export default function AvstBooksPage() {
           </div>
         </Reveal>
       </div>
-    </main>
+    {readerEp !== null ? <BookReader n={readerEp} onClose={() => setReaderEp(null)} /> : null}
+      </main>
   );
 }

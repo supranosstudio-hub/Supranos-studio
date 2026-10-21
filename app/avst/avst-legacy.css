@@ -457,14 +457,14 @@
 .avst-legacy .castglow{ display: none; }
 
 /* info column (right), vertically centered */
-.avst-legacy .castinfo{ grid-column: 2; grid-row: 2; align-self: center; display: grid; align-content: center; gap: clamp(20px, 3vw, 34px); min-width: 0; }
+.avst-legacy .castinfo{ grid-column: 2; grid-row: 2; align-self: stretch; display: grid; align-content: start; gap: clamp(16px, 2.2vw, 26px); min-width: 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding-block: clamp(8px,2vh,28px); }
 .avst-legacy .castinfo__l{ min-width: 0; }
 .avst-legacy .castinfo__role{ color: var(--accent); font-family: var(--label); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; }
 .avst-legacy .castinfo__name{ font-family: var(--display); font-weight: 800; color: var(--ink); font-size: clamp(2rem, 3.6vw, 3.4rem); line-height: 0.94; letter-spacing: -0.045em; margin: 10px 0 16px; }
 .avst-legacy .castinfo__home{ max-width: 34ch; color: var(--ink-2); font-family: var(--body); font-size: clamp(1.02rem, 1.2vw, 1.15rem); line-height: 1.6; }
 .avst-legacy .castinfo__line{ margin-top: 16px; font-family: var(--body); font-style: italic; font-size: clamp(1.1rem, 1.4vw, 1.35rem); line-height: 1.4; color: var(--ink); }
 .avst-legacy .castspec{ display: grid; border-top: 1px solid var(--ink); }
-.avst-legacy .castspec__row{ display: grid; grid-template-columns: 6.5em 1fr; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.avst-legacy .castspec__row{ display: grid; grid-template-columns: 6.5em 1fr; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .avst-legacy .castspec__row dt{ font-family: var(--label); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; padding-top: 2px; }
 .avst-legacy .castspec__row dd{ margin: 0; color: var(--ink-2); font-family: var(--body); font-size: 15px; line-height: 1.45; }
 
@@ -480,8 +480,8 @@
 .avst-legacy .colony{ display: grid; gap: clamp(14px,1.8vw,24px); grid-template-columns: repeat(auto-fit, minmax(min(190px,100%),1fr)); }
 .avst-legacy .colony__card{ background: none; padding-bottom: 0; border: 0; transition: opacity 0.2s var(--ease); }
 .avst-legacy .colony__card:hover .colony__img img{ filter: grayscale(0.5) contrast(1.02); }
-.avst-legacy .colony__img{ aspect-ratio: 3/4; overflow: hidden; }
-.avst-legacy .colony__img img{ width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; filter: grayscale(1) contrast(1.02); transition: filter 0.4s var(--ease); }
+.avst-legacy .colony__img{ aspect-ratio: 1/2; overflow: hidden; }
+.avst-legacy .colony__img img{ width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: grayscale(1) contrast(1.02); transition: filter 0.4s var(--ease); }
 .avst-legacy .colony__body{ padding: 13px clamp(10px,1.2vw,16px) 0; display: grid; gap: 5px; }
 .avst-legacy .colony__name{ font-family: var(--display); font-weight: 700; color: var(--ink); font-size: 1.08rem; letter-spacing: -0.01em; }
 .avst-legacy .colony__role{ font-family: var(--label); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
@@ -2650,3 +2650,13 @@
   .avst-legacy .cbook__upnext:hover .ibcta__arrow i, .avst-legacy .rd__upnext:hover .ibcta__arrow i{ width:52px; }
 
 
+
+
+/* fix: prevent episode-file grid blowout */
+.avst-legacy .file{ max-width: 100%; }
+.avst-legacy .file > *{ min-width: 0; }
+.avst-legacy .beats{ min-width: 0; }
+.avst-legacy .beat{ min-width: 0; }
+.avst-legacy .file__te{ overflow-wrap: anywhere; }
+.avst-legacy .beat__v, .avst-legacy .spec__row dd, .avst-legacy .file__log{ overflow-wrap: anywhere; }
+.avst-legacy #epfile{ overflow-x: hidden; }

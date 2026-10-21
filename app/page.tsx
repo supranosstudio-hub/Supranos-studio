@@ -5,6 +5,7 @@ import VentureRow from "@/components/home/VentureRow";
 import Clock from "@/components/home/Clock";
 import { VENTURES } from "@/lib/ventures";
 
+
 export default function Home() {
   return (
     <div className="bg-paper text-ink font-display">
@@ -77,28 +78,6 @@ export default function Home() {
             ))}
           </div>
         </section>
-
-        <Reveal>
-          <div
-            className="relative h-[clamp(180px,40vw,520px)] mx-[clamp(18px,6vw,110px)] my-[clamp(32px,6vw,80px)] overflow-hidden"
-            style={{
-              background:
-                "radial-gradient(120% 140% at 12% 8%, #E6E1D4 0%, rgba(230,225,212,0) 55%), radial-gradient(120% 120% at 88% 92%, #C9CCE8 0%, rgba(201,204,232,0) 55%), linear-gradient(120deg,#EDE9DF,#DCD7CB)",
-            }}
-            role="img"
-            aria-label="Index visual placeholder"
-          >
-            <span className="absolute left-4 bottom-3 font-mono text-[11px] tracking-[0.1em] text-muted">
-              fig.02 / index
-            </span>
-            <svg
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(50px,9vw,120px)] h-[clamp(50px,9vw,120px)] text-ink opacity-50"
-              viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"
-            >
-              <path d="M8 14h32M8 24h32M8 34h20" />
-            </svg>
-          </div>
-        </Reveal>
 
         <section id="ventures" className="px-[clamp(18px,6vw,110px)] py-[clamp(40px,8vw,120px)]">
           <Reveal><p className="font-mono text-xs tracking-[0.2em] uppercase text-muted mb-6 sm:mb-10">The index / six ventures</p></Reveal>

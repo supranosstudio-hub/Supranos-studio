@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EPISODES, MOVEMENTS } from "@/content/avst";
 import { AVST_COVERS } from "@/content/avst-media";
 import EpisodeFile from "./EpisodeFile";
@@ -13,6 +13,12 @@ export default function EpisodesSection() {
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [openEp, setOpenEp] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openEp === null) return;
+    const el = document.getElementById("epfile");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openEp]);
 
   const filters = useMemo(
     () => [{ id: "all", name: "All thirteen" }, ...MOVEMENTS.map((m) => ({ id: m.id, name: `${m.n} · ${m.name}` }))],

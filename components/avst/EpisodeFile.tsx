@@ -1,5 +1,9 @@
 "use client";
 
+"use client";
+
+import { useState } from "react";
+import BookReader from "./BookReader";
 import { EPISODES, MOVEMENTS, SHOW } from "@/content/avst";
 import { AVST_COVERS } from "@/content/avst-media";
 
@@ -42,6 +46,7 @@ export default function EpisodeFile({
   const prev = EPISODES.find((e) => e.n === n - 1);
   const next = EPISODES.find((e) => e.n === n + 1);
   const cover = AVST_COVERS[ep.n];
+  const [readerOpen, setReaderOpen] = useState(false);
 
   return (
     <div className="file">
@@ -57,7 +62,7 @@ export default function EpisodeFile({
             } as React.CSSProperties
           }
         />
-        <button className="file__open" type="button" disabled title="Coming with the book reader">
+        <button className="file__open" type="button" onClick={() => setReaderOpen(true)}>
           Open the book →
         </button>
         <p className="eyebrow">
@@ -124,6 +129,7 @@ export default function EpisodeFile({
           )}
         </nav>
       </div>
-    </div>
+    {readerOpen ? <BookReader n={ep.n} onClose={() => setReaderOpen(false)} /> : null}
+      </div>
   );
 }
