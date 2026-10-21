@@ -23,6 +23,7 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import "./globals.css";
 import Cursor from "@/components/Cursor";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 export const metadata: Metadata = {
   title: "supranos — independent studio",
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased overflow-x-hidden">
         <Cursor />
         {children}
+        <GoogleAnalytics />
       </body>
     </html>
   );

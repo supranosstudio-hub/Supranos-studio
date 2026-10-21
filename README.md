@@ -23,7 +23,7 @@ content lives in the repo and the whole thing exports to plain static files.
 
 ```
 app/
-  page.tsx                 the supranos studio landing page
+  (studio)/                the supranos sticker board (/), /about, /projects/[slug]
   avst/                    the AVST sitcom section
     page.tsx               pilot / season landing
     process/page.tsx       "how we built it"
@@ -32,6 +32,10 @@ app/
 components/                shared + page-specific React components
 content/avst.ts            episode, cast, places, rules, influences data
 content/avst-media.ts      cover / chibi / gallery image manifests
+content/studio.ts          studio board: projects, roles, About copy
+content/avst-pilot.ts      copy + asset lists for the /avst pilot landing
+components/avst/pilot/     the /avst landing sections (Tailwind, no legacy CSS)
+public/video/footer.mp4    footer film loop (teaser.mp4 not added yet — poster shows)
 lib/ventures.ts            the studio's venture list (home page)
 public/images/avst/        AVST images (extracted from the original
                             prototype's inline base64 data)

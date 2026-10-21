@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const LINKS = [
@@ -12,6 +13,10 @@ const LINKS = [
 
 export default function AvstNav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // The /avst landing carries its own header (PilotHeader).
+  if (pathname.replace(/\/$/, "") === "/avst") return null;
 
   return (
     <header className="sticky top-0 z-100 bg-avst-paper/90 backdrop-blur-md border-b border-avst-line">
