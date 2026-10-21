@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+:root {
+  /* supranos — main studio palette */
+  --paper: #F4F1EA;
+  --ink: #17150F;
+  --muted: #6E6A5E;
+  --line: #DBD6CA;
+  --accent: #2436E6;
+
+  /* avst — sitcom sub-brand palette */
+  --avst-paper: #F4F0E7;
+  --avst-paper-2: #EBE4D6;
+  --avst-paper-3: #DED4C0;
+  --avst-ink: #14110D;
+  --avst-ink-2: #3A3D45;
+  --avst-ink-3: #8B8171;
+  --avst-line: #D9CFBB;
+  --avst-line-hard: #C6B99F;
+  --avst-accent: #1b4dc4;
+  --avst-accent-2: #1740a8;
+  --avst-accent-soft: #7fa0ec;
+  --avst-night: #0E0C0A;
+  --avst-lime: #EDE5D6;
+  --avst-lime-2: #A79C8B;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+
+  --color-avst-paper: var(--avst-paper);
+  --color-avst-paper-2: var(--avst-paper-2);
+  --color-avst-paper-3: var(--avst-paper-3);
+  --color-avst-ink: var(--avst-ink);
+  --color-avst-ink-2: var(--avst-ink-2);
+  --color-avst-ink-3: var(--avst-ink-3);
+  --color-avst-line: var(--avst-line);
+  --color-avst-line-hard: var(--avst-line-hard);
+  --color-avst-accent: var(--avst-accent);
+  --color-avst-accent-2: var(--avst-accent-2);
+  --color-avst-accent-soft: var(--avst-accent-soft);
+  --color-avst-night: var(--avst-night);
+  --color-avst-lime: var(--avst-lime);
+  --color-avst-lime-2: var(--avst-lime-2);
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+  --font-avst-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-avst-body: "Newsreader", Georgia, serif;
+  --font-avst-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* animated gradient accent text, reused across both brands */
+.gradient-text {
+  background-image: linear-gradient(90deg, var(--accent), #7B85F5, var(--accent));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hue-sweep 6s ease-in-out infinite;
+}
+.gradient-text-avst {
+  background-image: linear-gradient(90deg, var(--avst-accent-soft), #fff, var(--avst-accent-soft));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hue-sweep 6s ease-in-out infinite;
+}
+@keyframes hue-sweep {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* custom cursor: desktop / fine-pointer only, never shown or hit-testable on touch */
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  border: 1px solid var(--ink);
+  pointer-events: none;
+  z-index: 999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+  transition: width .25s cubic-bezier(.2,.8,.2,1), height .25s cubic-bezier(.2,.8,.2,1), background .25s ease;
+  display: none;
+}
+.cursor-ring .cursor-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  opacity: 0;
+  transition: opacity .2s ease;
+  white-space: nowrap;
+}
+.cursor-ring.big {
+  width: 74px;
+  height: 74px;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.cursor-ring.big .cursor-label {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cursor-ring {
+    display: block;
+  }
+}
+
+/* text morph crossfade — the hidden sizer reserves box size from the
+   longest phrase so swapping words never shifts layout or overflows */
+.morph-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.morph-sizer {
+  visibility: hidden;
+  white-space: nowrap;
+  display: block;
+}
+.morph-word {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity .5s ease, filter .5s ease;
+  max-width: 100%;
+}
+.morph-word.on {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* venture row: plain CSS instead of a var()-in-bracket Tailwind arbitrary
+   value, which tripped up the CSS minifier during build */
+.venture-row:focus-visible {
+  outline: none;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* AVST gallery chibi marquee: continuous horizontal scroll, two directions */
+@keyframes avst-marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes avst-marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.animate-avst-marquee-left {
+  animation: avst-marquee-left 34s linear infinite;
+}
+.animate-avst-marquee-right {
+  animation: avst-marquee-right 41s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-avst-marquee-left,
+  .animate-avst-marquee-right {
+    animation: none;
+  }
+}
