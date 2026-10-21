@@ -254,3 +254,7 @@
 .sup .proj-points li{font-size:clamp(13px,1vw,15px);line-height:1;padding:.55em .9em .6em;border:1.5px solid rgba(47,47,47,.55);border-radius:999px}
 /* the site's custom cursor ring is not part of this design */
 body:has(.sup) .cursor-ring{display:none}
+
+.sup .proj-actions{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px}
+.sup .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);padding:calc(.9em - 1.5px) calc(1.35em - 1.5px) calc(.95em - 1.5px)}
+.sup .btn.ghost:hover{background:var(--ink);color:var(--canvas)}

@@ -10,7 +10,9 @@ export interface StudioProject {
   line: string;
   /** External link for the CTA. Empty → "Link coming soon". */
   url: string;
-  /** Internal route that replaces the generic project page (AVST has its own site section). */
+  /** Extra external links shown beside the CTA (socials etc.). */
+  links?: { label: string; url: string }[];
+  /** In-site destination for the CTA (AVST lives at /avst). Used when there is no external url. */
   route?: string;
   rot: number;
   peel: number;
@@ -29,7 +31,10 @@ export const STUDIO_PROJECTS: StudioProject[] = [
     name: "thindam",
     path: "./thindam",
     line: "A YouTube food channel.",
-    url: "",
+    url: "https://www.youtube.com/@Thindam",
+    links: [
+      { label: "Instagram", url: "https://www.instagram.com/thindamyt/" },
+    ],
     rot: -6,
     peel: 45,
     spin: 4,
@@ -41,7 +46,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Where", v: "YouTube" },
       { k: "Made for", v: "People who plan trips around meals" },
     ],
-    points: ["Honest first-bite reactions", "Places and recipes, not rankings", "Shot and edited in-house"],
+    points: [
+      "Honest first-bite reactions",
+      "Places and recipes, not rankings",
+      "Shot and edited in-house",
+    ],
   },
   {
     key: "avst",
@@ -62,7 +71,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Season one", v: "13 episodes · 40 days" },
       { k: "Language", v: "Tenglish" },
     ],
-    points: ["Made with AI, finished by hand", "Locked character sheets and environment plates", "Read the pilot online"],
+    points: [
+      "Made with AI, finished by hand",
+      "Locked character sheets and environment plates",
+      "Read the pilot online",
+    ],
   },
   {
     key: "blurr",
@@ -82,7 +95,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Made for", v: "Celebrations, reunions and good bottles" },
       { k: "Privacy", v: "Private by default" },
     ],
-    points: ["A physical object that opens a digital memory", "Add moments as the night happens", "Revisit them when the bottle is long empty"],
+    points: [
+      "A physical object that opens a digital memory",
+      "Add moments as the night happens",
+      "Revisit them when the bottle is long empty",
+    ],
   },
   {
     key: "rituaals",
@@ -102,7 +119,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Made for", v: "Couples and the families behind them" },
       { k: "Focus", v: "Ceremonies, timings, responsibilities" },
     ],
-    points: ["Ritual-by-ritual checklists", "Shared plans for both families", "Reminders keyed to auspicious timings"],
+    points: [
+      "Ritual-by-ritual checklists",
+      "Shared plans for both families",
+      "Reminders keyed to auspicious timings",
+    ],
   },
   {
     key: "stickers",
@@ -122,7 +143,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Output", v: "Die-cut sticker art" },
       { k: "Made for", v: "Laptop lids and notebooks" },
     ],
-    points: ["From a sentence to a sticker", "Clean die-cut outlines", "Built from the same peel-and-shine system as this site"],
+    points: [
+      "From a sentence to a sticker",
+      "Clean die-cut outlines",
+      "Built from the same peel-and-shine system as this site",
+    ],
   },
   {
     key: "notsookay",
@@ -142,7 +167,11 @@ export const STUDIO_PROJECTS: StudioProject[] = [
       { k: "Made for", v: "Anyone who is not so okay today" },
       { k: "Tone", v: "Warm, plain-spoken" },
     ],
-    points: ["Conversations over lectures", "Emotions through different life stages", "No fixing, just company"],
+    points: [
+      "Conversations over lectures",
+      "Emotions through different life stages",
+      "No fixing, just company",
+    ],
   },
 ];
 
@@ -172,7 +201,7 @@ export const STUDIO_ABOUT = {
 
 export const STUDIO_TITLE = "Supranos";
 
-/** Where a project's sticker leads. */
+/** Every sticker opens its project page; the CTA on that page leads onward. */
 export function projectHref(p: StudioProject): string {
-  return p.route ?? `/projects/${p.slug}`;
+  return `/projects/${p.slug}`;
 }
