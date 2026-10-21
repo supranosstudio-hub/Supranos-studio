@@ -56,7 +56,7 @@ const ARROW_OUT = (
   </svg>
 );
 
-const pages = STUDIO_PROJECTS.filter((p) => !p.route);
+const pages = STUDIO_PROJECTS;
 
 export function generateStaticParams() {
   return pages.map((p) => ({ slug: p.slug }));
@@ -78,6 +78,13 @@ export async function generateMetadata({
 }
 
 function ProjectCta({ project }: { project: StudioProject }) {
+  if (!project.url && project.route) {
+    return (
+      <Link className="btn" href={project.route}>
+        Visit {project.name} {ARROW_OUT}
+      </Link>
+    );
+  }
   if (!project.url) {
     return (
       <span className="btn off" aria-disabled="true">
@@ -103,7 +110,7 @@ export default async function ProjectPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const project = STUDIO_PROJECTS.find((p) => p.slug === slug && !p.route);
+  const project = STUDIO_PROJECTS.find((p) => p.slug === slug);
   if (!project) notFound();
 
   const index = STUDIO_PROJECTS.indexOf(project);
@@ -140,7 +147,20 @@ export default async function ProjectPage({
               <li key={pt}>{pt}</li>
             ))}
           </ul>
-          <ProjectCta project={project} />
+          <div className="proj-actions">
+            <ProjectCta project={project} />
+            {project.links?.map((l) => (
+              <a
+                key={l.url}
+                className="btn ghost"
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {l.label} {ARROW_OUT}
+              </a>
+            ))}
+          </div>
         </div>
       </article>
       <nav className="proj-nav" aria-label="More projects">
